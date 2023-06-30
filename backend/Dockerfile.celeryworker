@@ -1,0 +1,50 @@
+FROM python:3.8-bullseye
+LABEL maintainer="Cevat Batuhan Tolon <cevat.batuhan.tolon@cern.ch>"
+
+ENV PORT_HOST="8080"
+ENV PORT_CONTAINER="8080"
+ENV HOST="0.0.0.0"
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      build-essential \
+      curl \
+      bash \
+      vim \
+      nano \
+      unzip \
+      rsync \ 
+      coreutils \
+      procps \
+      unzip \
+      software-properties-common \
+      ssh \
+      netcat \
+      gcc \
+      wget
+
+# Clean up
+RUN apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy requirements.txt to the docker image
+COPY ./requirements.txt /tmp/requirements.txt
+
+# Install Python dependencies
+RUN pip install --upgrade pip
+RUN pip install -r /tmp/requirements.txt \
+    && rm -rf /root/.cache/pip
+
+# Copy codes to the docker image
+COPY ./src/ /app/
+
+# Set Workdir and PYTHONPATH as /app
+ENV PYTHONPATH=/app
+WORKDIR /app
+
+# Run Server
+COPY ./src/worker-start.sh /worker-start.sh
+
+RUN chmod +x /worker-start.sh
+
+CMD ["bash", "/worker-start.sh"]

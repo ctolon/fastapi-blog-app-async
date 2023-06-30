@@ -1,0 +1,52 @@
+FROM python:3.8-bullseye
+LABEL maintainer="Cevat Batuhan Tolon <cevat.batuhan.tolon@cern.ch>"
+
+#ENV PORT_HOST="8080"
+#ENV PORT_CONTAINER="8080"
+#ENV HOST="0.0.0.0"
+
+# Install some useful system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      build-essential \
+      curl \
+      bash \
+      vim \
+      nano \
+      unzip \
+      rsync \ 
+      coreutils \
+      procps \
+      unzip \
+      software-properties-common \
+      ssh \
+      netcat \
+      gcc \
+      wget
+
+# Clean up
+RUN apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy requirements.txt to the docker image
+COPY ./requirements.txt /tmp/requirements.txt
+
+# Install Python dependencies
+RUN pip install --upgrade pip
+RUN pip install -r /tmp/requirements.txt \
+    && rm -rf /root/.cache/pip
+
+# Copy some conf scripts to the docker image
+COPY ./conf/gunicorn_conf.py /
+COPY ./conf/start-reload.sh /
+COPY ./conf/start.sh /
+COPY ./conf/prestart.sh /app/prestart.sh
+
+# Copy codes to the docker image for CI/CD
+COPY ./src/ /app/
+
+# Set Workdir and PYTHONPATH as /app
+ENV PYTHONPATH=/app
+WORKDIR /app
+
+# Run Server
+#CMD ["uvicorn", "app.main:app", "--host=0.0.0.0", "--port=8080", "--log-level=info", "--workers=4"]
